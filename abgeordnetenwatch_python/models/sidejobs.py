@@ -1,5 +1,5 @@
 import aiohttp
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, ClassVar
 from pydantic import BaseModel, model_validator
 
 
@@ -13,18 +13,38 @@ class Sidejob(BaseModel):
     organization_country: Optional[str] = None
     income_total: Optional[float] = None
 
+    sidejob_category_dict: ClassVar[Dict[str, str]] = {
+        "29231": "Beteiligung an Kapital- oder Personengesellschaften",
+        "29647": "Entgeltliche Tätigkeiten neben dem Mandat",
+        "29229": "Funktionen in Körperschaften und Anstalten des öffentlichen Rechts",
+        "29228": "Funktionen in Unternehmen",
+        "29230": "Funktionen in Vereinen, Verbænden und Stiftungen",
+        "29232": "Spenden/Zuwendungen für politische Tätigkeit",
+        "29233": "Vereinbarungen über künftige Tätigkeiten oder Vermögensvorteile",
+        "29234": "Berufliche Tätigkeit vor der Mitgliedschaft im Deutschen Bundestag"
+    }
+
     @model_validator(mode='before')
     @classmethod
-    def flatten(cls, data: Any) -> Any:
+    def augment(cls, data: Any) -> Any:
+        current_cat = data.get("category")
+        if current_cat in cls.sidejob_category_dict:
+            data["category"] = cls.sidejob_category_dict.get(current_cat)
+
         org = data.get("sidejob_organization")
         if isinstance(org, dict):
             data["organization_label"] = org.get("label")
-            country = data.get("field_country")
-            if isinstance(country, dict):
-                data["organization_country"] = country.get("label")
+
+        country = data.get("field_country")
+        if isinstance(country, dict):
+            data["organization_country"] = country.get("label")
+
         if data.get("income_total") is None:
             data["income_total"] = 0.0
+
         return data
+
+
 
 async def load_sidejobs(
         politician_mandate_id: int,
