@@ -1,9 +1,7 @@
+import aiohttp
 from pathlib import Path
 from typing import List, Optional, Union
-
-import aiohttp
 from pydantic import BaseModel
-
 from abgeordnetenwatch_python.models.party import Party
 from abgeordnetenwatch_python.models.questions_answers import QuestionsAnswers
 from abgeordnetenwatch_python.questions_answers.load_qa import load_questions_answers
@@ -20,6 +18,10 @@ class Politician(BaseModel):
     abgeordnetenwatch_url: str
     party: Optional[Party] = None
     residence: Optional[str] = None
+    sex: Optional[str] = None
+    year_of_birth: Optional[int] = None
+    education: Optional[str] = None
+    occupation: Optional[str] = None
 
     async def load_questions_answers(
             self, session: aiohttp.ClientSession, verbose: bool = False, threads: int = 1,
@@ -35,7 +37,7 @@ class Politician(BaseModel):
 
     def __repr__(self) -> str:
         return 'Politician(id={}, first_name={} last_name={}, party={}, residence={})' \
-               .format(self.id, self.first_name, self.last_name, self.party, self.residence)
+            .format(self.id, self.first_name, self.last_name, self.party, self.residence)
 
     def __str__(self) -> str:
         return f'{self.first_name} {self.last_name} {self.id} ({self.party.label if self.party else "unknown"})'
@@ -48,8 +50,16 @@ class Politician(BaseModel):
 
 
 async def get_politicians(
-        session: aiohttp.ClientSession, id: Optional[int] = None, first_name: Optional[str] = None,
-        last_name: Optional[str] = None, party: Optional[str] = None, residence: Optional[str] = None
+        session: aiohttp.ClientSession,
+        id: Optional[int] = None,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        party: Optional[str] = None,
+        residence: Optional[str] = None,
+        sex: Optional[str] = None,
+        year_of_birth: Optional[int] = None,
+        education: Optional[str] = None,
+        occupation: Optional[str] = None,
 ) -> List[Politician]:
     """
     Calls the abgeordnetenwatch API to retrieve all politicians matching the given parameters.
@@ -60,6 +70,10 @@ async def get_politicians(
     :param last_name: Last name or list of last names to use for filtering.
     :param party: Porty or list of parties to use for filtering.
     :param residence: Residence or list of residences to use for filtering.
+    :param occupation: Occupation or list of occupations to use for filtering.
+    :param education: Education to use for filtering.
+    :param year_of_birth: Birth year to use for filtering.
+    :param sex: Gender to use for filtering.
     :return: A (possibly empty) list of Politicians.
     """
     params = {}
@@ -73,6 +87,14 @@ async def get_politicians(
         params['party'] = party
     if residence is not None:
         params['residence'] = residence
+    if occupation is not None:
+        params['occupation'] = occupation
+    if education is not None:
+        params['education'] = education
+    if year_of_birth is not None:
+        params['year_of_birth'] = year_of_birth
+    if sex is not None:
+        params['sex'] = sex
     url = 'https://www.abgeordnetenwatch.de/api/v2/politicians'
     async with session.get(url, raise_for_status=True, params=params) as r:
         data = await r.json()
@@ -80,8 +102,16 @@ async def get_politicians(
 
 
 async def get_politician(
-        session: aiohttp.ClientSession, id: Optional[int] = None, first_name: Optional[str] = None,
-        last_name: Optional[str] = None, party: Optional[str] = None, residence: Optional[str] = None
+        session: aiohttp.ClientSession,
+        id: Optional[int] = None,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        party: Optional[str] = None,
+        residence: Optional[str] = None,
+        sex: Optional[str] = None,
+        year_of_birth: Optional[int] = None,
+        education: Optional[str] = None,
+        occupation: Optional[str] = None,
 ) -> Politician:
     """
     Retrieve a single politician based on specified parameters. The function filters
@@ -94,11 +124,15 @@ async def get_politician(
     :param first_name: Optional. The first name of the politician to retrieve.
     :param last_name: Optional. The last name of the politician to retrieve.
     :param party: Optional. The political party of the politician to retrieve.
-    :param residence: Optional. The residence location of the politician to
-        retrieve.
+    :param residence: Optional. The residence location of the politician to retrieve.
+    :param occupation: Optional. The occupation or list of occupations of the politician to retrieve.
+    :param education: Optional. Education level of the politician to retrieve.
+    :param year_of_birth: Optional. Birth year of the politician to retrieve.
+    :param sex: Optional. Gender of the politician to retrieve.
     :return: The politician that matches the specified criteria.
     """
-    politicians = await get_politicians(session, id, first_name, last_name, party, residence)
+    politicians = await get_politicians(session, id, first_name, last_name, party, residence, occupation, education,
+                                        year_of_birth, sex)
     if len(politicians) != 1:
         raise ValueError('Expected 1 politician, but found {}'.format(len(politicians)))
     return politicians[0]
