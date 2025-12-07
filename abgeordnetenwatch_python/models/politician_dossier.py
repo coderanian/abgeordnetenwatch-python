@@ -1,13 +1,13 @@
+import asyncio
 import json
 import warnings
+import aiohttp
 from pathlib import Path
 from typing import Optional, List
-
-import aiohttp
 from pydantic import BaseModel, ValidationError
 from tqdm.asyncio import tqdm
-
 from abgeordnetenwatch_python.cache import CacheInfo
+from abgeordnetenwatch_python.models.sidejobs import Sidejob, load_sidejobs
 from abgeordnetenwatch_python.questions_answers.load_qa import load_questions_answers, sort_questions_answers
 from abgeordnetenwatch_python.models.candidacy_mandate import get_candidacy_mandates
 from abgeordnetenwatch_python.models.politicians import Politician
@@ -18,6 +18,7 @@ class PoliticianDossier(BaseModel):
     politician: Politician
     mandate_ids: List[int]
     questions_answers: QuestionsAnswers
+    sidejobs: Optional[List[Sidejob]] = None
 
     def sort_questions_answers(self, sort_by: str):
         self.questions_answers = sort_questions_answers(
@@ -88,7 +89,11 @@ async def load_politician_dossier(
         cache_info=cache_info, tqdm_args=tqdm_args, politician_name=politician.get_full_name()
     )
 
-    return PoliticianDossier(politician=politician, mandate_ids=mandate_ids, questions_answers=questions_answers)
+    sidejob_tasks = [load_sidejobs(m_id, session) for m_id in mandate_ids]
+    sidejob_nested = await asyncio.gather(*sidejob_tasks)
+    flatten_sidejobs = [job for jobs in sidejob_nested for job in jobs]
+
+    return PoliticianDossier(politician=politician, mandate_ids=mandate_ids, questions_answers=questions_answers, sidejobs=flatten_sidejobs)
 
 
 async def load_politician_dossier_with_cache_file(
