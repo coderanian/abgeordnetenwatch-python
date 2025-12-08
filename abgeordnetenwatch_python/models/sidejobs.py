@@ -41,9 +41,10 @@ class Sidejob(BaseModel):
 
         if data.get("income_total") is None:
             data["income_total"] = 0.0
+        else:
+            data["income_total"] = float(data["income_total"]["value"])
 
         return data
-
 
 
 async def load_sidejobs(
