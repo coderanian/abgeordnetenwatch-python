@@ -12,6 +12,7 @@ class QuestionAnswerResult(BaseModel):
     answer_date: Optional[datetime.date] = None
     answer: Optional[str] = None
     errors: List[str] = []
+    topics: Optional[List[str]] = None
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> 'QuestionAnswerResult':

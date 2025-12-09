@@ -92,27 +92,46 @@ def date_from_text(text: str) -> Optional[datetime.date]:
 def parse_question_answer(content: str, qa_result: QuestionAnswerResult):
     soup = BeautifulSoup(content, 'html.parser')
 
-    main_article = soup.find_all('article', {'itemtype': 'https://schema.org/Question'})[0]
+    main_articles = soup.find_all('article', {'itemtype': 'https://schema.org/Question'})
 
-    main_question_tag = main_article.find('h1', {'class': 'tile__question__teaser'})
+    if not main_articles:
+        return  # Handle error: No article found
+
+    main_article = main_articles[0]
+
+    # 2. Extract Question
+    main_question_tag = main_article.find('h1', {'itemprop': 'name'})
     qa_result.question = _parse_tag(main_question_tag)
 
-    addition_question_tag = main_article.find('div', {'class': 'tile__question-text'})
-    qa_result.question_addition = _parse_tag(addition_question_tag)
+    # 3. Extract Question Addition / Context (Optional)
+    context_tag = main_article.find('p')
+    qa_result.question_addition = _parse_tag(context_tag)
 
-    answer_tag = main_article.find('div', {'class': 'question-answer__text'})
+    # 4. Extract Answer
+    answer_tag = main_article.find('div', {'class': 'answer__body'})
     qa_result.answer = _parse_tag(answer_tag)
 
-    # date infos
-    question_date_tags = main_article.find_all('div', {'class': 'tile__politician__info'})
-    if len(question_date_tags) >= 1:
-        question_date_text = _parse_tag(question_date_tags[0])
+    # 5. Extract Dates
+    date_tags = main_article.find_all('span', {'itemprop': 'datePublished'})
+
+    if len(date_tags) >= 1:
+        # The content attribute often has ISO format "2025-12-08" which is safer to parse than text
+        question_date_text = date_tags[0].get_text(strip=True)
         if question_date_text:
             qa_result.question_date = date_from_text(question_date_text)
-    if len(question_date_tags) >= 2:
-        answer_date_text = _parse_tag(question_date_tags[1])
-        if answer_date_text is not None:
+
+    answer_container = main_article.find('div', {'class': 'answer'})
+    if answer_container:
+        answer_date_tag = answer_container.find('span', {'itemprop': 'datePublished'})
+        if answer_date_tag:
+            answer_date_text = answer_date_tag.get_text(strip=True)  # e.g. "09.12.2025"
             qa_result.answer_date = date_from_text(answer_date_text)
+
+    # 6. Extract Topics
+    tags_container = soup.find('div', {'class': 'question__tags'})
+    if tags_container:
+        topic_tags = tags_container.find_all('a', {'class': 'chip'})
+        qa_result.topics = [_parse_tag(tag) for tag in topic_tags]
 
 
 def print_questions_answers(questions_answers: QuestionsAnswers):
