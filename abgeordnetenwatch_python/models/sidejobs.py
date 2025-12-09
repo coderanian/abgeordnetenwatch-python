@@ -13,7 +13,7 @@ class Sidejob(BaseModel):
     organization_country: Optional[str] = None
     income_total: Optional[float] = None
 
-    sidejob_category_dict: ClassVar[Dict[str, str]] = {
+    sidejob_category_dict: ClassVar[Dict[Optional[str], str]] = {
         "29231": "Beteiligung an Kapital- oder Personengesellschaften",
         "29647": "Entgeltliche Tätigkeiten neben dem Mandat",
         "29229": "Funktionen in Körperschaften und Anstalten des öffentlichen Rechts",
@@ -21,7 +21,8 @@ class Sidejob(BaseModel):
         "29230": "Funktionen in Vereinen, Verbænden und Stiftungen",
         "29232": "Spenden/Zuwendungen für politische Tätigkeit",
         "29233": "Vereinbarungen über künftige Tätigkeiten oder Vermögensvorteile",
-        "29234": "Berufliche Tätigkeit vor der Mitgliedschaft im Deutschen Bundestag"
+        "29234": "Berufliche Tätigkeit vor der Mitgliedschaft im Deutschen Bundestag",
+        None: "Unbekannt"
     }
 
     @model_validator(mode='before')
@@ -41,9 +42,10 @@ class Sidejob(BaseModel):
 
         if data.get("income_total") is None:
             data["income_total"] = 0.0
+        else:
+            data["income_total"] = float(data["income_total"]["value"])
 
         return data
-
 
 
 async def load_sidejobs(
