@@ -40,10 +40,13 @@ class Sidejob(BaseModel):
         if isinstance(country, dict):
             data["organization_country"] = country.get("label")
 
-        if data.get("income_total") is None:
+        income_total = data.get("income_total")
+        if income_total is None:
             data["income_total"] = 0.0
+        elif isinstance(income_total, dict) and "value" in income_total:
+            data["income_total"] = float(income_total["value"])
         else:
-            data["income_total"] = float(data["income_total"]["value"])
+            data["income_total"] = float(income_total)
 
         return data
 

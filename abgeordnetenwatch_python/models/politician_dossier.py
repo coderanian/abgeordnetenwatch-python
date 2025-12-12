@@ -11,7 +11,7 @@ from abgeordnetenwatch_python.models.sidejobs import Sidejob, load_sidejobs
 from abgeordnetenwatch_python.questions_answers.load_qa import load_questions_answers, sort_questions_answers
 from abgeordnetenwatch_python.models.candidacy_mandate import get_candidacy_mandates
 from abgeordnetenwatch_python.models.politicians import Politician
-from abgeordnetenwatch_python.models.questions_answers import QuestionsAnswers, TqdmArgs
+from abgeordnetenwatch_python.models.questions_answers import QuestionsAnswers, TqdmArgs, QuestionAnswerResult
 
 
 class PoliticianDossier(BaseModel):
@@ -41,6 +41,10 @@ class PoliticianDossier(BaseModel):
         filename.parent.mkdir(exist_ok=True, parents=True)
         with open(filename, 'w') as f:
             data = self.model_dump(mode='json')
+
+            if "questions_answers" in data and isinstance(data["questions_answers"], dict):
+                data["questions_answers"] = data["questions_answers"].get("questions_answers", [])
+
             json.dump(data, f, indent=2, sort_keys=True)
 
 
