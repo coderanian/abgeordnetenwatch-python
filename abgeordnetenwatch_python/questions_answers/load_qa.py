@@ -131,7 +131,7 @@ def parse_question_answer(content: str, qa_result: QuestionAnswerResult):
     tags_container = soup.find('div', {'class': 'question__tags'})
     if tags_container:
         topic_tags = tags_container.find_all('a', {'class': 'chip'})
-        qa_result.topics = [_parse_tag(tag) for tag in topic_tags]
+        qa_result.topics = [_parse_tag(tag) for tag in topic_tags if _parse_tag(tag).lower() != 'bundestag']
 
 
 def print_questions_answers(questions_answers: QuestionsAnswers):

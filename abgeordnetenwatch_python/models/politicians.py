@@ -1,8 +1,7 @@
 import aiohttp
 from pathlib import Path
-from typing import List, Optional, Union
-from pydantic import BaseModel
-from abgeordnetenwatch_python.models.party import Party
+from typing import List, Optional, Union, Any
+from pydantic import BaseModel, model_validator
 from abgeordnetenwatch_python.models.questions_answers import QuestionsAnswers
 from abgeordnetenwatch_python.questions_answers.load_qa import load_questions_answers
 from abgeordnetenwatch_python.cache import CacheInfo
@@ -16,12 +15,20 @@ class Politician(BaseModel):
     statistic_questions: Optional[int] = None
     statistic_questions_answered: Optional[int] = None
     abgeordnetenwatch_url: str
-    party: Optional[Party] = None
+    party: Optional[str] = None
     residence: Optional[str] = None
     sex: Optional[str] = None
     year_of_birth: Optional[int] = None
     education: Optional[str] = None
     occupation: Optional[str] = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def flatten(cls, data: Any) -> Any:
+        party = data.get("party")
+        if isinstance(party, dict):
+            data["party"] = party.get("label")
+        return data
 
     async def load_questions_answers(
             self, session: aiohttp.ClientSession, verbose: bool = False, threads: int = 1,
@@ -40,7 +47,7 @@ class Politician(BaseModel):
             .format(self.id, self.first_name, self.last_name, self.party, self.residence)
 
     def __str__(self) -> str:
-        return f'{self.first_name} {self.last_name} {self.id} ({self.party.label if self.party else "unknown"})'
+        return f'{self.first_name} {self.last_name} {self.id} ({self.party if self.party else "unknown"})'
 
     def get_full_name(self) -> str:
         """
