@@ -8,10 +8,11 @@ from pydantic import BaseModel, ValidationError
 from tqdm.asyncio import tqdm
 from abgeordnetenwatch_python.cache import CacheInfo
 from abgeordnetenwatch_python.models.sidejobs import Sidejob, load_sidejobs
+from abgeordnetenwatch_python.politicians.augment_politician import get_profile_img_url
 from abgeordnetenwatch_python.questions_answers.load_qa import load_questions_answers, sort_questions_answers
 from abgeordnetenwatch_python.models.candidacy_mandate import get_candidacy_mandates
 from abgeordnetenwatch_python.models.politicians import Politician
-from abgeordnetenwatch_python.models.questions_answers import QuestionsAnswers, TqdmArgs, QuestionAnswerResult
+from abgeordnetenwatch_python.models.questions_answers import QuestionsAnswers, TqdmArgs
 
 
 class PoliticianDossier(BaseModel):
@@ -19,6 +20,7 @@ class PoliticianDossier(BaseModel):
     mandate_ids: List[int]
     questions_answers: QuestionsAnswers
     sidejobs: Optional[List[Sidejob]] = None
+    profile_img_url: Optional[str] = None
 
     def sort_questions_answers(self, sort_by: str):
         self.questions_answers = sort_questions_answers(
@@ -97,7 +99,15 @@ async def load_politician_dossier(
     sidejob_nested = await asyncio.gather(*sidejob_tasks)
     flatten_sidejobs = [job for jobs in sidejob_nested for job in jobs]
 
-    return PoliticianDossier(politician=politician, mandate_ids=mandate_ids, questions_answers=questions_answers, sidejobs=flatten_sidejobs)
+    profile_img_url = await get_profile_img_url(politician.abgeordnetenwatch_url, session=session)
+
+    return PoliticianDossier(
+        politician=politician,
+        mandate_ids=mandate_ids,
+        questions_answers=questions_answers,
+        sidejobs=flatten_sidejobs,
+        profile_img_url=profile_img_url
+    )
 
 
 async def load_politician_dossier_with_cache_file(

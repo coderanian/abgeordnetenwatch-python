@@ -18,7 +18,8 @@ def parse_args():
     )
     parser.add_argument(
         'parliament', type=str,
-        help='Name of the parlament to download'
+        help='Name of the parlament to download',
+        default='bundestag'
     )
 
     parser.add_argument(
